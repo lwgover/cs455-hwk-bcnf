@@ -2,9 +2,10 @@ import java.util.*;
 
 public class Main {
   public static void main(String[] args) {
-    /*
-     * Examples from the Theory (Part II) slides (page 29)
-     */
+    Set<String> test = new HashSet<>(Arrays.asList("A", "D", "E"));
+    FD f1test = new FD(Arrays.asList("A", "E"), Arrays.asList("D")); // AE --> D
+    System.out.println(Normalizer.findSuperkeys(test,new FDSet(f1test)));
+
 
     // U(A,B,C,D,E)
     Set<String> U = new HashSet<>(Arrays.asList("A", "B", "C", "D", "E"));
