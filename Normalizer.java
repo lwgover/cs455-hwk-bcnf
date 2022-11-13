@@ -4,7 +4,7 @@ import java.util.Set;
 
 /**
  * This class provides static methods for performing normalization
- * 
+ *
  * @author Lucas Gover
  * @version 11 / 11 / 2022
  */
@@ -12,71 +12,70 @@ public class Normalizer {
 
   /**
    * Performs BCNF decomposition
-   * 
+   *
    * @param rel   A relation (as an attribute set)
    * @param fdset A functional dependency set
    * @return a set of relations (as attribute sets) that are in BCNF
    */
   public static Set<Set<String>> BCNFDecompose(Set<String> rel, FDSet fdset) {
-    System.out.println("Decomposing!");
-    // First test if the given relation is already in BCNF with respect to
-    // the provided FD set.
     if(isBCNF(rel,fdset)){
-      return new HashSet<Set<String>>(Set.of(rel));
+      return Set.of(rel);
     }
-    // Identify a nontrivial FD that violates BCNF. Split the relation's
-    // attributes using that FD, as seen in class.
-    Set<Set<String>> superKeys = findSuperkeys(rel,fdset);
-    System.out.println("Superkeys:" + superKeys);
+    Set<Set<String>> superkeys = findSuperkeys(rel, fdset);
+    System.out.println("\tCurrent schema: " + rel);
+    System.out.println("\tCurrent schema's superkeys: " + superkeys);
+
     FD violatingFD = null;
-    for(FD fd :fdset){
-      if(!isTrivial(fd) && !superKeys.contains(fd.getLeft())){
+    for(FD fd : fdset) {
+      if (rel.containsAll(fd.getLeft()) && rel.containsAll(fd.getRight()) && !fd.isTrivial() && !superkeys.contains(fd.getLeft())) {     //Identify a violating FD
         violatingFD = fd;
-        System.out.println(violatingFD);
         break;
       }
     }
+    System.out.println("*** Splitting on " + violatingFD + " ***");
+    Set<String> r1 = splitLeft(violatingFD); //finding the sets of attributes for new relations
+    Set<String> r2 = splitRight(violatingFD, rel);
 
-    // Redistribute the FDs in the closure of fdset to the two new
-    // relations (R_Left and R_Right) as follows:
-    Set<String>R_Left = new HashSet<String>(violatingFD.getLeft());
-    R_Left.addAll(violatingFD.getRight());
-    Set<String>R_Right = new HashSet<String>(rel);
-    R_Right.removeAll(violatingFD.getRight());
-    R_Right.addAll(violatingFD.getLeft());
-    //
     FDSet closure = FDUtil.fdSetClosure(fdset);
     FDSet fds1 = new FDSet();
     FDSet fds2 = new FDSet();
 
     for(FD fd:closure){
-      if(R_Left.containsAll(fd.getLeft()) && R_Left.containsAll(fd.getRight())){
+      if(r1.containsAll(fd.getLeft()) && r1.containsAll(fd.getRight())){
         fds1.add(fd);
       }
-      if(R_Right.containsAll(fd.getLeft()) && R_Right.containsAll(fd.getRight())){
+      if(r2.containsAll(fd.getLeft()) && r2.containsAll(fd.getRight())){
         fds2.add(fd);
       }
     }
-    // Iterate through closure of the given set of FDs, then union all attributes
-    // appearing in the FD, and test if the union is a subset of the R_Left (or
-    // R_Right) relation. If so, then the FD gets added to the R_Left's (or R_Right's) FD
-    // set. If the union is not a subset of either new relation, then the FD is
-    // discarded
 
-    // Repeat the above until all relations are in BCNF
-    System.out.println("R1: " + R_Left);
-    System.out.println("R2: " + R_Right);
-    System.out.println("fds1: " + fds1.toString());
-    System.out.println("fds2: " + fds2.toString());
-    Set<Set<String>> returnValue = BCNFDecompose(R_Left,fds1);
-    returnValue.addAll(BCNFDecompose(R_Right,fds2));
-    return returnValue;
+    System.out.println("\tLeft schema: " + r1);
+    System.out.println("\tLeft schema's superkeys: " + findSuperkeys(r1, fds1));
+    System.out.println("\tRight schema: " + r2);
+    System.out.println("\tRight schema's superkeys: " + findSuperkeys(r2, fds2));
+
+    Set<Set<String>> result = new HashSet<>(BCNFDecompose(r1, fds1));
+    result.addAll(BCNFDecompose(r2, fds2));
+
+    return result;
+
+  }
+  private static Set<String> splitLeft(FD fd){
+    Set<String> left = new HashSet<>(fd.getRight());
+    left.addAll(fd.getLeft());
+    return left;
+  }
+  private static Set<String> splitRight(FD fd, Set<String> rel){
+    Set<String> left = new HashSet<>(rel);
+    left.removeAll(fd.getRight());
+    left.addAll(fd.getLeft());
+    return left;
   }
 
   /**
    * Tests whether the given relation is in BCNF. A relation is in BCNF iff the
    * left-hand attribute set of all nontrivial FDs is a super key.
-   * 
+   *
    * @param rel   A relation (as an attribute set)
    * @param fdset A functional dependency set
    * @return true if the relation is in BCNF with respect to the specified FD set
@@ -97,7 +96,7 @@ public class Normalizer {
 
   /**
    * This method returns a set of super keys
-   * 
+   *
    * @param rel   A relation (as an attribute set)
    * @param fdset A functional dependency set
    * @return a set of super keys
@@ -108,37 +107,34 @@ public class Normalizer {
     if(!isValidRelationForFDs(rel,fdset)){throw new IllegalArgumentException();}
 
     // iterate through each subset of the relation's attributes, and test the attribute closure of each subset
-    Set<Set<String>> keySet = new HashSet<Set<String>>();
+    Set<Set<String>> superkeys = new HashSet<Set<String>>();
     for(Set<String> subset: FDUtil.powerSet(rel)){
-      if(isSuperkey(subset,fdset)){
-        keySet.add(subset);
+      if(isSuperkey(subset,rel,fdset)){
+        superkeys.add(subset);
       }
     }
-    return keySet;
+    return superkeys;
   }
 
-  private static boolean isSuperkey(Set<String> subset, FDSet fdset) {
-    Set<FD> diff = FDUtil.fdSetClosure(fdset).getSet();
-    diff.removeAll(FDUtil.fdSetClosure(retainedFDs(subset,fdset)).getSet());
-    for(FD fd:diff){
-      if(!isTrivial(fd)){
-        return false;
-      }
-    }
-    return true;
+  private static boolean isSuperkey(Set<String> subset, Set<String> rel,FDSet fdset) {
+    return attributeClosure(subset, fdset).equals(rel);
   }
 
-  private static FDSet retainedFDs(Set<String> subset, FDSet fdset){
-    FDSet retained = new FDSet();
-    for(FD fd : fdset){
-      if(subset.containsAll(fd.getLeft())){
-        retained.add(fd);
+  private static Set<String> attributeClosure(Set<String> subset, FDSet fdset) {
+    Set<String> closure = new HashSet<>(subset);
+    int initSize;
+    do{
+      initSize = closure.size();
+      for(FD fd : fdset){
+        if(closure.containsAll(fd.getLeft())){
+          closure.addAll(fd.getRight());
+        }
       }
-    }
-    return retained;
+    } while(closure.size() > initSize); //repeat until the closure doesn't grow
+    return closure;
   }
   private static boolean isValidRelationForFDs(Set<String> rel, FDSet fdset){
-    
+
     HashSet<String> allAttrs = new HashSet<String>();
     for(FD fd : fdset){
       allAttrs.addAll(fd.getLeft());
