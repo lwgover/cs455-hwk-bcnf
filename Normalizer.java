@@ -22,8 +22,6 @@ public class Normalizer {
       return Set.of(rel);
     }
     Set<Set<String>> superkeys = findSuperkeys(rel, fdset);
-    System.out.println("\tCurrent schema: " + rel);
-    System.out.println("\tCurrent schema's superkeys: " + superkeys);
 
     FD violatingFD = null;
     for(FD fd : fdset) {
@@ -32,7 +30,6 @@ public class Normalizer {
         break;
       }
     }
-    System.out.println("*** Splitting on " + violatingFD + " ***");
     Set<String> r1 = splitLeft(violatingFD); //finding the sets of attributes for new relations
     Set<String> r2 = splitRight(violatingFD, rel);
 
@@ -48,12 +45,6 @@ public class Normalizer {
         fds2.add(fd);
       }
     }
-
-    System.out.println("\tLeft schema: " + r1);
-    System.out.println("\tLeft schema's superkeys: " + findSuperkeys(r1, fds1));
-    System.out.println("\tRight schema: " + r2);
-    System.out.println("\tRight schema's superkeys: " + findSuperkeys(r2, fds2));
-
     Set<Set<String>> result = new HashSet<>(BCNFDecompose(r1, fds1));
     result.addAll(BCNFDecompose(r2, fds2));
 
