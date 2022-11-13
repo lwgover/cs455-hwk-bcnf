@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="FDUtil">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/FDUtil.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
