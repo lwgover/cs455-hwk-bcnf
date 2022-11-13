@@ -37,7 +37,7 @@ public class Normalizer {
       }
     }
 
-    // TODO - Redistribute the FDs in the closure of fdset to the two new
+    // Redistribute the FDs in the closure of fdset to the two new
     // relations (R_Left and R_Right) as follows:
     Set<String>R_Left = new HashSet<String>(violatingFD.getLeft());
     R_Left.addAll(violatingFD.getRight());
@@ -88,7 +88,6 @@ public class Normalizer {
         return false;
       }
     }
-
     return true;
   }
 
@@ -111,19 +110,28 @@ public class Normalizer {
     // iterate through each subset of the relation's attributes, and test the attribute closure of each subset
     Set<Set<String>> keySet = new HashSet<Set<String>>();
     for(Set<String> subset: FDUtil.powerSet(rel)){
-      System.out.println(subset);
-      System.out.println(FDUtil.fdSetClosure(retainedFDs(subset,fdset)));
-      System.out.println("FDSet: " + fdset);
-      if(FDUtil.fdSetClosure(retainedFDs(subset,fdset)).size() >= fdset.size()){
+      if(isSuperkey(subset,fdset)){
         keySet.add(subset);
       }
     }
     return keySet;
   }
-  private static FDSet retainedFDs(Set<String> rel, FDSet fdset){
+
+  private static boolean isSuperkey(Set<String> subset, FDSet fdset) {
+    Set<FD> diff = FDUtil.fdSetClosure(fdset).getSet();
+    diff.removeAll(FDUtil.fdSetClosure(retainedFDs(subset,fdset)).getSet());
+    for(FD fd:diff){
+      if(!isTrivial(fd)){
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static FDSet retainedFDs(Set<String> subset, FDSet fdset){
     FDSet retained = new FDSet();
     for(FD fd : fdset){
-      if(rel.containsAll(fd.getLeft())){
+      if(subset.containsAll(fd.getLeft())){
         retained.add(fd);
       }
     }

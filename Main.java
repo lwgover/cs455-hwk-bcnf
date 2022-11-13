@@ -6,6 +6,12 @@ public class Main {
     FD f1test = new FD(Arrays.asList("A", "E"), Arrays.asList("D")); // AE --> D
     System.out.println(Normalizer.findSuperkeys(test,new FDSet(f1test)));
 
+    Set<String> S = new HashSet<>(Arrays.asList("A", "B", "C", "D")); // Relation S(A,B,C,D)
+    FD s1 = new FD(Arrays.asList("A"), Arrays.asList("B")); // A --> B
+    FD s2 = new FD(Arrays.asList("B"), Arrays.asList("C")); // B --> C
+    FDSet fdsetS = new FDSet(s1, s2);
+    System.out.println("Final BCNF Schemas: " + Normalizer.BCNFDecompose(S, fdsetS));
+
 
     // U(A,B,C,D,E)
     Set<String> U = new HashSet<>(Arrays.asList("A", "B", "C", "D", "E"));
